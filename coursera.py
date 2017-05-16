@@ -1,5 +1,6 @@
 import random
 import xml.etree.ElementTree as etree
+from collections import namedtuple
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,7 +20,7 @@ def get_courses_list():
     response = requests.get(url, headers=headers)
     root = etree.fromstring(response.content)
     url_list = [child[0].text for child in root]
-    random_urls = random.sample(url_list, 100)
+    random_urls = random.sample(url_list, 5)
     return random_urls
 
 
@@ -44,11 +45,16 @@ def get_course_info(course_slug):
     else:
         user_rating = 'No data'
 
-    print('-' * 20)
-    print(course_name)
-    print(start_date)
-    print(length_course)
-    print(user_rating)
+    CourseInfo = namedtuple('CourseInfo', ('course_name', 'start_date',
+                                           'length_course', 'user_rating'))
+    course_info = CourseInfo(course_name=course_name, start_date=start_date,
+                             length_course=length_course, user_rating=user_rating)
+    #print('-' * 20)
+    #print(course_name)
+    #print(start_date)
+    #print(length_course)
+    #print(user_rating)
+    return course_info
 
 
 def get_course(url):
@@ -57,7 +63,7 @@ def get_course(url):
     except requests.exceptions.HTTPError as err:
         print(err)
     else:
-        get_course_info(response.content)
+        return get_course_info(response.content)
     #rating = re.search(r'[0-9.]+',soup.find('div', {'class': 'ratings-text'}).text)
     #rating.group()
 
@@ -69,6 +75,6 @@ if __name__ == '__main__':
     urls = get_courses_list()
     print(urls)
     for url in urls:
-        get_course(url)
-
+        course_info = get_course(url)
+        print(course_info)
 
