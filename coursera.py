@@ -19,7 +19,7 @@ def get_courses_list():
     response = requests.get(url, headers=headers)
     root = etree.fromstring(response.content)
     url_list = [child[0].text for child in root]
-    random_urls = random.sample(url_list, 50)
+    random_urls = random.sample(url_list, 100)
     return random_urls
 
 
@@ -34,16 +34,21 @@ def get_course_info(course_slug):
         length_course = str(len(length_course)) + ' week(s)'
     else:
         length_course = soup.find('i', {'class':'cif-clock'})
-        length_course = length_course.parent.next_sibling.text
+        if length_course:
+            length_course = length_course.parent.next_sibling.text
+        else:
+            length_course = 'No data'
 
     if user_rating:
         user_rating = user_rating.text
+    else:
+        user_rating = 'No data'
 
     print('-' * 20)
     print(course_name)
     print(start_date)
     print(length_course)
-    #print(user_rating)
+    print(user_rating)
 
 
 def get_course(url):
@@ -62,7 +67,7 @@ def output_courses_info_to_xlsx(filepath):
 
 if __name__ == '__main__':
     urls = get_courses_list()
-    #print(urls)
+    print(urls)
     for url in urls:
         get_course(url)
 
