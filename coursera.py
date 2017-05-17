@@ -20,40 +20,45 @@ def get_courses_list():
     response = requests.get(url, headers=headers)
     root = etree.fromstring(response.content)
     url_list = [child[0].text for child in root]
-    random_urls = random.sample(url_list, 5)
+    random_urls = random.sample(url_list, 50)
     return random_urls
 
 
 def get_course_info(course_slug):
     soup = BeautifulSoup(course_slug, 'lxml')
+    length_course = None
+    user_rating = None
     course_name = soup.find('h1', {'class': 'title'}).text
     start_date = soup.find('div', {'class': 'startdate'}).text
-    length_course = soup.find('div', {'class':'rc-WeekView'})
-    user_rating = soup.find('div', {'class': 'ratings-text'})
+    language = soup.find('div', {'class':'rc-Language'}).text
+    #length_course = soup.find('div', {'class':'rc-WeekView'})
+    #user_rating = soup.find('div', {'class': 'ratings-text'})
 
-    if length_course:
+    if soup.find('div', {'class':'rc-WeekView'}):
+        length_course = soup.find('div', {'class':'rc-WeekView'})
         length_course = str(len(length_course)) + ' week(s)'
+    elif soup.find('i', {'class':'cif-clock'}):
+        length_course = soup.find('i', {'class':'cif-clock'}).parent.next_sibling.text
     else:
-        length_course = soup.find('i', {'class':'cif-clock'})
-        if length_course:
-            length_course = length_course.parent.next_sibling.text
-        else:
-            length_course = 'No data'
+        length_course = 'No data'
 
-    if user_rating:
-        user_rating = user_rating.text
+    if soup.find('div', {'class': 'ratings-text'}):
+        user_rating = soup.find('div', {'class': 'ratings-text'}).text
     else:
         user_rating = 'No data'
 
     CourseInfo = namedtuple('CourseInfo', ('course_name', 'start_date',
-                                           'length_course', 'user_rating'))
+                                           'language', 'length_course',
+                                           'user_rating'))
     course_info = CourseInfo(course_name=course_name, start_date=start_date,
-                             length_course=length_course, user_rating=user_rating)
-    #print('-' * 20)
-    #print(course_name)
-    #print(start_date)
-    #print(length_course)
-    #print(user_rating)
+                             language=language, length_course=length_course,
+                             user_rating=user_rating)
+    print('-' * 20)
+    print(course_name)
+    print(start_date)
+    print(language)
+    print(length_course)
+    print(user_rating)
     return course_info
 
 
@@ -77,4 +82,3 @@ if __name__ == '__main__':
     for url in urls:
         course_info = get_course(url)
         print(course_info)
-
