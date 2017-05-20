@@ -1,36 +1,34 @@
+import asyncio
 import random
-import xml.etree.ElementTree as etree
 from collections import namedtuple
+import xml.etree.ElementTree as etree
 
-import requests
+import tqdm
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
+from aiohttp import ClientSession
 
 
 CourseInfo = namedtuple('CourseInfo', ('course_name', 'start_date',
                                        'language', 'length_course',
                                        'user_rating'))
 
-headers = {'User-Agent':
-               'Mozilla/5.0 (X11; Linux x86_64)AppleWebKit/537.36 \
-               (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
-           'Accept':
-               'text/html,application/xhtml+xml,application/xml;\
-               q=0.9,image/webp,*/*;q=0.8'}
 
-def get_courses_list():
+async def get_courses_list(session):
     url = 'https://www.coursera.org/sitemap~www~courses.xml'
-    response = requests.get(url, headers=headers)
-    root = etree.fromstring(response.content)
+    response = await get_response(url, session)
+    response = response.decode('utf-8')
+    #response = requests.get(url)
+    root = etree.fromstring(response)
     url_list = [child[0].text for child in root]
-    random_urls = random.sample(url_list, 50)
+    random_urls = random.sample(url_list, 10)
     return random_urls
 
 
-def parser_course_page(course_slug):
+def get_info(page):
     length_course = None
     user_rating = None
-    soup = BeautifulSoup(course_slug, 'lxml')
+    soup = BeautifulSoup(page, 'lxml')
     course_name = soup.find('h1', {'class': 'title'}).text
     start_date = soup.find('div', {'class': 'startdate'}).text
     language = soup.find('div', {'class':'rc-Language'}).text
@@ -52,20 +50,30 @@ def parser_course_page(course_slug):
                              language=language, length_course=length_course,
                              user_rating=user_rating)
     return course_info
+    
+    return course_name
 
 
-def get_courses_info(urls_list):
-    course_info_list = []
-    for url in  urls_list:
-        try:
-            response = requests.get(url, headers=headers)
-        except requests.exceptions.HTTPError as err:
-            print(err)
-        else:
-            course_info = parser_course_page(response.content)
-            course_info_list.append(course_info)
-    return course_info_list
+async def get_response(url, session):
+    async with session.get(url) as response:
+        return await response.read()
+        
 
+async def get_contents():
+    results = []
+    async with ClientSession() as session:
+        random_links = await get_courses_list(session)
+        print('Links received')
+        tasks=[asyncio.ensure_future(
+            get_response(url, session)) for url in random_links]
+        to_do_iter = asyncio.as_completed(tasks)
+        to_do_iter = tqdm.tqdm(to_do_iter, total=len(random_links))
+        for future in to_do_iter:
+            res = await future
+            results.append(res.decode('utf-8'))
+        #await asyncio.wait(tasks)
+    return results
+    
 
 def output_courses_info_to_xlsx(courses_info_list, filepath):
     workbook = Workbook()
@@ -80,8 +88,21 @@ def output_courses_info_to_xlsx(courses_info_list, filepath):
                           course.user_rating])
     workbook.save(filepath)
 
+
+def get_courses_info(pages):
+    courses_info = []
+    for page in pages:
+        course_info = get_info(page)
+        courses_info.append(course_info)
+    return courses_info
+
+
 if __name__ == '__main__':
-    urls_list = get_courses_list()
-    course_info_list = get_courses_info(urls_list)
-    output_courses_info_to_xlsx(course_info_list, 'sample.xlsx')
-    
+    #s = time.time()
+    #links = get_courses_list()
+    #print('Links received')
+    loop=asyncio.get_event_loop()
+    res = loop.run_until_complete(get_contents())
+    courses_info_list = get_courses_info(res)
+    output_courses_info_to_xlsx(courses_info_list, 'sample.xlsx')
+    print(courses_info_list)
