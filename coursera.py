@@ -4,7 +4,12 @@ from collections import namedtuple
 
 import requests
 from bs4 import BeautifulSoup
+from openpyxl import Workbook
 
+
+CourseInfo = namedtuple('CourseInfo', ('course_name', 'start_date',
+                                       'language', 'length_course',
+                                       'user_rating'))
 
 headers = {'User-Agent':
                'Mozilla/5.0 (X11; Linux x86_64)AppleWebKit/537.36 \
@@ -12,8 +17,6 @@ headers = {'User-Agent':
            'Accept':
                'text/html,application/xhtml+xml,application/xml;\
                q=0.9,image/webp,*/*;q=0.8'}
-
-
 
 def get_courses_list():
     url = 'https://www.coursera.org/sitemap~www~courses.xml'
@@ -24,15 +27,13 @@ def get_courses_list():
     return random_urls
 
 
-def get_course_info(course_slug):
-    soup = BeautifulSoup(course_slug, 'lxml')
+def parser_course_page(course_slug):
     length_course = None
     user_rating = None
+    soup = BeautifulSoup(course_slug, 'lxml')
     course_name = soup.find('h1', {'class': 'title'}).text
     start_date = soup.find('div', {'class': 'startdate'}).text
     language = soup.find('div', {'class':'rc-Language'}).text
-    #length_course = soup.find('div', {'class':'rc-WeekView'})
-    #user_rating = soup.find('div', {'class': 'ratings-text'})
 
     if soup.find('div', {'class':'rc-WeekView'}):
         length_course = soup.find('div', {'class':'rc-WeekView'})
@@ -47,38 +48,40 @@ def get_course_info(course_slug):
     else:
         user_rating = 'No data'
 
-    CourseInfo = namedtuple('CourseInfo', ('course_name', 'start_date',
-                                           'language', 'length_course',
-                                           'user_rating'))
     course_info = CourseInfo(course_name=course_name, start_date=start_date,
                              language=language, length_course=length_course,
                              user_rating=user_rating)
-    print('-' * 20)
-    print(course_name)
-    print(start_date)
-    print(language)
-    print(length_course)
-    print(user_rating)
     return course_info
 
 
-def get_course(url):
-    try:
-        response = requests.get(url, headers=headers)
-    except requests.exceptions.HTTPError as err:
-        print(err)
-    else:
-        return get_course_info(response.content)
-    #rating = re.search(r'[0-9.]+',soup.find('div', {'class': 'ratings-text'}).text)
-    #rating.group()
+def get_courses_info(urls_list):
+    course_info_list = []
+    for url in  urls_list:
+        try:
+            response = requests.get(url, headers=headers)
+        except requests.exceptions.HTTPError as err:
+            print(err)
+        else:
+            course_info = parser_course_page(response.content)
+            course_info_list.append(course_info)
+    return course_info_list
 
-def output_courses_info_to_xlsx(filepath):
-    pass
 
+def output_courses_info_to_xlsx(courses_info_list, filepath):
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.append(['Course name', 'Start date', 
+                      'Language', 'Length of the course', 'User rating'])
+    for course in courses_info_list:
+        worksheet.append([course.course_name,
+                          course.start_date,
+                          course.language,
+                          course.length_course,
+                          course.user_rating])
+    workbook.save(filepath)
 
 if __name__ == '__main__':
-    urls = get_courses_list()
-    print(urls)
-    for url in urls:
-        course_info = get_course(url)
-        print(course_info)
+    urls_list = get_courses_list()
+    course_info_list = get_courses_info(urls_list)
+    output_courses_info_to_xlsx(course_info_list, 'sample.xlsx')
+    
