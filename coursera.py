@@ -89,8 +89,13 @@ def output_courses_info_to_xlsx(courses_info_list, filepath):
                           course.language,
                           course.length_course,
                           course.user_rating])
+    
+    for column_cells in worksheet.columns:
+        length = (max(len(str(cell.value)) for cell in column_cells))
+        worksheet.column_dimensions[column_cells[0].column].width = length
+        
     workbook.save(filepath)
-    print('File was saved')
+    print('File has been saved')
 
 
 if __name__ == '__main__':
