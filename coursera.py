@@ -95,7 +95,7 @@ def output_courses_info_to_xlsx(courses_info_list, filepath):
         worksheet.column_dimensions[column_cells[0].column].width = length
         
     workbook.save(filepath)
-    print('File has been saved')
+    print('File \'{}\' has been saved'.format(filepath))
 
 
 if __name__ == '__main__':
@@ -103,4 +103,4 @@ if __name__ == '__main__':
     loop=asyncio.get_event_loop()
     courses_page = loop.run_until_complete(get_course_pages())
     courses_info_list = get_courses_info(courses_page)
-    output_courses_info_to_xlsx(courses_info_list, 'sample.xlsx')
+    output_courses_info_to_xlsx(courses_info_list, 'couesera.xlsx')
