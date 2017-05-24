@@ -29,9 +29,9 @@ async def get_courses_urls(session):
     return random_urls
 
 
-async def get_course_pages():
+async def get_course_pages(loop):
     results = []
-    async with ClientSession() as session:
+    async with ClientSession(loop=loop) as session:
         random_links = await get_courses_urls(session)
         tasks=[asyncio.ensure_future(
             get_response_data(url, session)) for url in random_links]
@@ -101,6 +101,6 @@ def output_courses_info_to_xlsx(courses_info_list, filepath):
 if __name__ == '__main__':
 
     loop=asyncio.get_event_loop()
-    courses_page = loop.run_until_complete(get_course_pages())
+    courses_page = loop.run_until_complete(get_course_pages(loop))
     courses_info_list = get_courses_info(courses_page)
     output_courses_info_to_xlsx(courses_info_list, 'couesera.xlsx')
