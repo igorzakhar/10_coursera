@@ -104,3 +104,4 @@ if __name__ == '__main__':
     courses_page = loop.run_until_complete(get_course_pages(loop))
     courses_info_list = get_courses_info(courses_page)
     output_courses_info_to_xlsx(courses_info_list, 'couesera.xlsx')
+    loop.close()
