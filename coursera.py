@@ -1,6 +1,5 @@
 import asyncio
 import random
-import time
 import xml.etree.ElementTree as etree
 
 from aiohttp import ClientSession
