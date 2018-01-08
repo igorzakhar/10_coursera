@@ -26,16 +26,22 @@ def get_random_urls(body):
     return random_urls
 
 
-async def fetch_courses_html():
-    async with ClientSession() as session:
+async def fetch_courses_html(urls, session):
+    tasks = [
+        asyncio.ensure_future(fetch_response(url, session))
+        for url in urls
+    ]
+    courses_html = await asyncio.gather(*tasks)
+    return courses_html
+
+
+async def run(loop):
+    async with ClientSession(loop=loop) as session:
         body = await fetch_xml(session)
         urls = get_random_urls(body)
-        tasks = [
-            asyncio.ensure_future(fetch_response(url, session))
-            for url in urls
-        ]
-        courses_html = await asyncio.gather(*tasks)
-    return courses_html
+        courses = await fetch_courses_html(urls, session)
+
+    return courses
 
 
 def parse_course_info(html):
@@ -105,10 +111,11 @@ def save_workbook(workbook, filename):
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    courses_html = loop.run_until_complete(fetch_courses_html())
+    courses_html = loop.run_until_complete(run(loop))
     courses_info = [parse_course_info(html) for html in courses_html]
     workbook = fill_xlsx(courses_info)
-    filepath = 'couesera.xlsx'
+
+    filepath = 'coursera.xlsx'
     error = save_workbook(workbook, filepath)
     if not error:
         print('File \'{}\' has been saved'.format(filepath))
