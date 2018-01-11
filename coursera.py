@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import random
 import xml.etree.ElementTree as etree
@@ -5,6 +6,26 @@ import xml.etree.ElementTree as etree
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
+
+
+def process_args():
+    parser = argparse.ArgumentParser(
+        description="Get courses info from Coursera"
+    )
+    parser.add_argument(
+        '-n',
+        type=int,
+        dest='num',
+        default=20,
+        help='Number of links'
+    )
+    parser.add_argument(
+        '-a',
+        '--all',
+        action='store_true',
+        help='Get all links from xml feed'
+    )
+    return parser.parse_args()
 
 
 async def fetch_response(url, session):
@@ -18,12 +39,12 @@ async def fetch_xml(session):
     return body
 
 
-def get_random_urls(body):
-    number_links = 20
+def get_random_urls(body, number_links):
     root = etree.fromstring(body)
     url_list = [child[0].text for child in root]
-    random_urls = random.sample(url_list, number_links)
-    return random_urls
+    if number_links:
+        url_list = random.sample(url_list, number_links)
+    return url_list
 
 
 async def fetch_courses_html(urls, session):
@@ -35,10 +56,10 @@ async def fetch_courses_html(urls, session):
     return courses_html
 
 
-async def get_courses_pages(loop):
+async def get_courses_pages(loop, number_links):
     async with ClientSession(loop=loop) as session:
         body = await fetch_xml(session)
-        urls = get_random_urls(body)
+        urls = get_random_urls(body, number_links)
         courses_html = await fetch_courses_html(urls, session)
     return courses_html
 
@@ -107,8 +128,13 @@ def save_workbook(workbook, filename):
 
 
 if __name__ == '__main__':
+    args = process_args()
+    if args.all:
+        args.num = 0
     loop = asyncio.get_event_loop()
-    courses_html = loop.run_until_complete(get_courses_pages(loop))
+    courses_html = loop.run_until_complete(
+        get_courses_pages(loop, args.num)
+    )
     courses_info = [parse_course_info(html) for html in courses_html]
     workbook = fill_xlsx(courses_info)
 
