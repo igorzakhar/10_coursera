@@ -13,8 +13,8 @@ async def fetch_response(url, session):
 
 
 async def fetch_xml(session):
-    xml = 'https://www.coursera.org/sitemap~www~courses.xml'
-    body = await fetch_response(xml, session)
+    xml_feed = 'https://www.coursera.org/sitemap~www~courses.xml'
+    body = await fetch_response(xml_feed, session)
     return body
 
 
@@ -35,13 +35,12 @@ async def fetch_courses_html(urls, session):
     return courses_html
 
 
-async def run(loop):
+async def get_courses_pages(loop):
     async with ClientSession(loop=loop) as session:
         body = await fetch_xml(session)
         urls = get_random_urls(body)
-        courses = await fetch_courses_html(urls, session)
-
-    return courses
+        courses_html = await fetch_courses_html(urls, session)
+    return courses_html
 
 
 def parse_course_info(html):
@@ -50,17 +49,15 @@ def parse_course_info(html):
     start_date = soup.find('div', {'class': 'startdate'}).text
     language = soup.find('div', {'class': 'rc-Language'}).text
 
-    if soup.find('div', {'class': 'rc-WeekView'}):
-        length_course = soup.find('div', {'class': 'rc-WeekView'})
-        length_course = str(len(length_course)) + ' week(s)'
-    elif soup.find('i', {'class': 'cif-clock'}):
-        length_course = soup.find('i', {'class': 'cif-clock'})
-        length_course = length_course.parent.next_sibling.text
+    duration_course = soup.findAll('div', {'class': 'week'})
+    if duration_course:
+        duration_course = str(len(duration_course)) + ' week(s)'
     else:
-        length_course = None
+        duration_course = None
 
-    if soup.find('div', {'class': 'ratings-text'}):
-        user_rating = soup.find('div', {'class': 'ratings-text'}).text
+    user_rating = soup.find('div', {'class': 'ratings-text'})
+    if user_rating:
+        user_rating = user_rating.text
     else:
         user_rating = None
 
@@ -68,7 +65,7 @@ def parse_course_info(html):
         'course_name': course_name,
         'start_date': start_date,
         'language': language,
-        'length_course': length_course,
+        'duration_course': duration_course,
         'user_rating': user_rating
     }
 
@@ -91,7 +88,7 @@ def fill_xlsx(courses_info):
             course['course_name'],
             course['start_date'],
             course['language'],
-            course['length_course'],
+            course['duration_course'],
             course['user_rating']
         ])
 
@@ -111,7 +108,7 @@ def save_workbook(workbook, filename):
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    courses_html = loop.run_until_complete(run(loop))
+    courses_html = loop.run_until_complete(get_courses_pages(loop))
     courses_info = [parse_course_info(html) for html in courses_html]
     workbook = fill_xlsx(courses_info)
 
