@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 import random
 import xml.etree.ElementTree as etree
 
@@ -24,6 +25,13 @@ def process_args():
         '--all',
         action='store_true',
         help='Get all links from xml feed'
+    )
+    parser.add_argument(
+        '-p',
+        '--path',
+        type=str,
+        default='coursera.xlsx',
+        help='Set a path for saving file'
     )
     return parser.parse_args()
 
@@ -121,8 +129,9 @@ def fill_xlsx(courses_info):
 
 
 def save_workbook(workbook, filename):
+    path_to_save = os.path.abspath(filename)
     try:
-        workbook.save(filename)
+        workbook.save(path_to_save)
     except OSError as error:
         return error
 
@@ -137,11 +146,9 @@ if __name__ == '__main__':
     )
     courses_info = [parse_course_info(html) for html in courses_html]
     workbook = fill_xlsx(courses_info)
-
-    filepath = 'coursera.xlsx'
-    error = save_workbook(workbook, filepath)
+    error = save_workbook(workbook, args.path)
     if not error:
-        print('File \'{}\' has been saved'.format(filepath))
+        print('File \'{}\' has been saved'.format(args.path))
     else:
         print(error)
     loop.close()
