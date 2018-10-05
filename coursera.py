@@ -57,7 +57,7 @@ def get_random_urls(body, number_links):
 
 async def fetch_courses_html(urls, session):
     tasks = [
-        asyncio.ensure_future(fetch_response(url, session))
+        fetch_response(url, session)
         for url in urls
     ]
     courses_html = await asyncio.gather(*tasks)
