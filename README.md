@@ -14,7 +14,7 @@
 - [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
 - [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
 - [lxml](http://lxml.de/)
-- [openpyxl](https://openpyxl.readthedocs.io/en/default/)
+- [openpyxl](https://openpyxl.readthedocs.io)
 
 Используйте команду pip для установки сторонних библиотек из файла зависимостей (или pip3 если есть конфликт с предустановленным Python 2):
 ```
